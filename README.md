@@ -68,7 +68,7 @@ filenames are self explanatory:
 
 The `nginx` directory contains:
 
- * `mnginx.conf`: server configuration.
+ * `nginx.conf`: server configuration.
 
 ### Jupyter notebook
 
