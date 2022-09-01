@@ -9,7 +9,7 @@ The concept of recipes relies on employing the most **expedient** way
 to use and explore the UP42 data platform.
 
 The concept of recipes borrows from cookbooks and the idea is to
-provide developers with pragmatic how-tos. Similar to coooking we draw
+provide developers with pragmatic how-tos. Similarly to cooking we draw
 from multiple _ingredients_, meaning technologies. They intend to be
 as simple as possible while exploring the full range of possibilities,
 offered by the UP42 data platform.
