@@ -86,6 +86,30 @@ the UP42 blog post that elaborates on how to use it.
 
  * [Blog post on data ordering 101](https://up42.com/blog/tech/data-ordering101).
 
+## Stereo ordering 101
+
+The code relative to this recipe is on the `stereo-ordering101` directory.
+
+### Ingredients (Requirements)
+
+ 1. 7. [UP42 SDK](https://sdk.up42.com/)
+ 2. Minimal knowledge of Python.
+ 3. An [UP42](https://up42.com) account.
+
+Bear in mind that this recipe is only about searching for
+stereo/tri-stereo data. To order the data after finding the
+stereo/tri-stereo tuples please refer to the [Data ordering 101](#data-ordering-101)
+snippet.
+
+### Jupyter notebook
+
+In the `notebooks` directory there is a Python
+[Jupyter](https://jupyter.org) notebook that makes use of the
+[UP42 SDK](https://sdk.up42.com/) to setup the webhook, search and
+order data.
+
+ * `stereo_ordering101.ipynb`.
+
 ## License
 
 MIT License

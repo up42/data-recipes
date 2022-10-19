@@ -18,36 +18,36 @@ from math import sin, radians
 
 from typing import Union, Final
 
-# The maximum acquisition date delta in seconds in a stereo/tristereo capture.
+# The maximum acquisition date delta in seconds in a stereo/tri-stereo capture.
 MAX_ACQ_TIME_DELTA: Final[float]= 90
 
 # B/H range for Pléiades, SPOT and Pléiades NEO.
 B_H_RANGE_SENSORS: Final[dict]={"phr": {"stereo": {"upper": 0.6,
                                                    "lower": 0.15
                                                    },
-                                        "tristereo": {"upper": 0.7,
-                                                      "lower": 0.3
-                                                      }
+                                        "tri-stereo": {"upper": 0.7,
+                                                       "lower": 0.3
+                                                       }
                                         },
                                 "spot": {"stereo": {"upper": 0.6,
                                                     "lower": 0.15
                                                     },
-                                         "tristereo": {"upper": 0.7,
-                                                       "lower": 0.3
-                                                       }
+                                         "tri-stereo": {"upper": 0.7,
+                                                        "lower": 0.3
+                                                        }
                                          },
                                 "pneo": {"stereo": {"upper": 0.5,
                                                     "lower": 0.15
                                                     },
-                                         "tristereo": {"upper": 0.7,
-                                                       "lower": 0.3
-                                                       }
+                                         "tri-stereo": {"upper": 0.7,
+                                                        "lower": 0.3
+                                                        }
                                          }
                                 }
 
 
 def is_stereo_dates(*acquisition_dates: str) -> bool:
-    """Checks to see if the acquisition dates are within the range allowed for a stereo/tristereo capture.
+    """Checks to see if the acquisition dates are within the range allowed for a stereo/tri-stereo capture.
 
     Parameters
     ----------
@@ -57,7 +57,7 @@ def is_stereo_dates(*acquisition_dates: str) -> bool:
     Returns
     -------
     bool
-        True if the dates are within a stereo/tristereo range, False
+        True if the dates are within a stereo/tri-stereo range, False
         if not.
 
     Examples
@@ -77,7 +77,7 @@ def is_stereo_dates(*acquisition_dates: str) -> bool:
 
 
 def is_stereo_angles(*incidence_angles: float, sensor: str, tristereo: bool=False) -> bool:
-    """Checks is the incidence angles along the track is within the B/H bounds defined for a given satellite when doing stereo/tristereo captures.
+    """Checks is the incidence angles along the track is within the B/H bounds defined for a given satellite when doing stereo/tri-stereo captures.
 
     Parameters
     ----------
@@ -86,14 +86,14 @@ def is_stereo_angles(*incidence_angles: float, sensor: str, tristereo: bool=Fals
     sensor : str
         the name of the sensor (satellite)
     tristereo : bool
-        True if we are looking for tristereo, False if looking for
+        True if we are looking for tri-stereo, False if looking for
         stereo.
 
     Returns
     -------
     bool
         True if the angles are such that we are within the B/H range
-        for stereo/tristereo. False if not.
+        for stereo/tri-stereo. False if not.
 
     Examples
     --------
@@ -104,7 +104,7 @@ def is_stereo_angles(*incidence_angles: float, sensor: str, tristereo: bool=Fals
 
     # Compute the sin of each incidence angle along track. Assuming
     # the curvature of the Earth is negligible for the maximum length
-    # of stereo/tristereo captures. Up to 100 km. The curvature of the
+    # of stereo/tri-stereo captures. Up to 100 km. The curvature of the
     # Earth will make it so that the "drop" between, the beginning and
     # the end of the capture is roughly 800 m for a 100 km length.
     b_over_h = reduce(lambda x, y: sin(radians(x)) + sin(radians(y)),
@@ -146,8 +146,8 @@ def select_stereo(feature_list: list[dict])-> Union[None, list[dict]]:
                        )
                        and
                        is_stereo_angles(
-                           e[0]["properties"]["providerProperties"]["incidenceAngleAcrossTrack"],
-                           e[1]["properties"]["providerProperties"]["incidenceAngleAcrossTrack"],
+                           e[0]["properties"]["providerProperties"]["incidenceAngleAlongTrack"],
+                           e[1]["properties"]["providerProperties"]["incidenceAngleAlongTrack"],
                            e[0]["properties"]["collection"],
                        ),
                        list(zip(a, b))
@@ -155,7 +155,7 @@ def select_stereo(feature_list: list[dict])-> Union[None, list[dict]]:
                 )
 
 def select_tristereo(feature_list: list[dict])-> Union[None, list[dict]]:
-    """Given a list of GeoJSON simple features it returns the ones that are possibly tristereo triples.
+    """Given a list of GeoJSON simple features it returns the ones that are possibly tri-stereo triples.
 
     Parameters
     ----------
@@ -165,7 +165,7 @@ def select_tristereo(feature_list: list[dict])-> Union[None, list[dict]]:
     Returns
     -------
     Union[None, list[dict]]
-        A list of triples that are probable tristereo triples.
+        A list of triples that are probable tri-stereo triples.
 
     """
     # Get an iterator from the given list.
@@ -174,13 +174,13 @@ def select_tristereo(feature_list: list[dict])-> Union[None, list[dict]]:
     (a, b, c) = tee(it, 3)
     # Advance the second iterator.
     next(b, None)
-    # Advance twi<ce the third iterator.
+    # Advance twice the third iterator.
     next(c, None), next(c, None)
     # Build a list of consecutive triples from the given list. Filter
-    # that list for tristereo triples. We only analyse the "extreme"
+    # that list for tri-stereo triples. We only analyse the "extreme"
     # positions, hence we only check for the first and third element
     # of the triple for the dates. For the angle we look at the first
-    # two, since the B/H value is adjusted for tristereo, This works
+    # two, since the B/H value is adjusted for tri-stereo, This works
     # due to the ordering of the search results.
     return list(filter(lambda e:
                        is_stereo_dates(
@@ -189,10 +189,10 @@ def select_tristereo(feature_list: list[dict])-> Union[None, list[dict]]:
                        )
                        and
                        is_stereo_angles(
-                           e[0]["properties"]["providerProperties"]["incidenceAngleAcrossTrack"],
-                           e[2]["properties"]["providerProperties"]["incidenceAngleAcrossTrack"],
+                           e[0]["properties"]["providerProperties"]["incidenceAngleAlongTrack"],
+                           e[2]["properties"]["providerProperties"]["incidenceAngleAlongTrack"],
                            e[0]["properties"]["collection"],
-                           True, # is tristereo
+                           True, # is tri-stereo
                        ),
                        list(zip(a, b, c))
                        )
@@ -224,12 +224,12 @@ def get_stereo_image_ids(results_list: list[tuple])-> list[str]:
 
 def get_tristereo_image_ids(results_list: list[tuple])-> list[str]:
     """Convenience function to extract the image IDs from a list of
-    given tristereo triples.
+    given tri-stereo triples.
 
     Parameters
     ----------
     results_list : list[tuple]
-        A list of pairs containing the IDs of the given tristereo triples.
+        A list of pairs containing the IDs of the given tri-stereo triples.
 
     Returns
     -------
