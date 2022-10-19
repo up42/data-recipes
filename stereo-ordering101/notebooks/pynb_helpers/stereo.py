@@ -25,23 +25,23 @@ MAX_ACQ_TIME_DELTA: Final[float]= 90
 B_H_RANGE_SENSORS: Final[dict]={"phr": {"stereo": {"upper": 0.6,
                                                    "lower": 0.15
                                                    },
-                                        "tri-stereo": {"upper": 0.7,
-                                                       "lower": 0.3
-                                                       }
+                                        "tristereo": {"upper": 0.7,
+                                                      "lower": 0.3
+                                                      }
                                         },
                                 "spot": {"stereo": {"upper": 0.6,
                                                     "lower": 0.15
                                                     },
-                                         "tri-stereo": {"upper": 0.7,
-                                                        "lower": 0.3
-                                                        }
+                                         "tristereo": {"upper": 0.7,
+                                                       "lower": 0.3
+                                                       }
                                          },
                                 "pneo": {"stereo": {"upper": 0.5,
                                                     "lower": 0.15
                                                     },
-                                         "tri-stereo": {"upper": 0.7,
-                                                        "lower": 0.3
-                                                        }
+                                         "tristereo": {"upper": 0.7,
+                                                       "lower": 0.3
+                                                       }
                                          }
                                 }
 
@@ -62,8 +62,8 @@ def is_stereo_dates(*acquisition_dates: str) -> bool:
 
     Examples
     --------
-    is_stereo_dates(("2021-10-13T10:59:01.624Z", "2021-10-13T10:58:42.874Z"))
-    is_stereo_dates(("2021-10-07T11:21:34.555Z", "2021-10-07T11:21:20.305Z", "2021-10-07T11:21:06.180Z"))
+    is_stereo_dates("2021-10-13T10:59:01.624Z", "2021-10-13T10:58:42.874Z")
+    is_stereo_dates("2021-10-07T11:21:34.555Z", "2021-10-07T11:21:20.305Z", "2021-10-07T11:21:06.180Z")
 
     """
 
@@ -72,8 +72,9 @@ def is_stereo_dates(*acquisition_dates: str) -> bool:
     # https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes. Also
     # create a UNIX timestamp from the given acquisition dates.
     return reduce(minus_op, map(lambda d: dt.timestamp(
-        re.sub(r"(?P<ms>\.\d{3})Z$", r"\g<ms>000Z", d),
-        "%Y-%m-%dT%H:%M:%S.%fZ"), acquisition_dates)) < MAX_ACQ_TIME_DELTA
+        dt.strptime(
+            re.sub(r"(?P<ms>\.\d{3})Z$", r"\g<ms>000Z", d),
+            "%Y-%m-%dT%H:%M:%S.%fZ")), acquisition_dates)) < MAX_ACQ_TIME_DELTA
 
 
 def is_stereo_angles(*incidence_angles: float, sensor: str, tristereo: bool=False) -> bool:
@@ -97,8 +98,8 @@ def is_stereo_angles(*incidence_angles: float, sensor: str, tristereo: bool=Fals
 
     Examples
     --------
-    is_stereo_angles((12.458, -1.567))
-    is_stereo_angles((12.458, -1.567, 4.674))
+    is_stereo_angles(12.458, -1.567, sensor="phr")
+    is_stereo_angles(12.458, -1.567, 4.674, sensor="phr", tristereo=True)
 
     """
 
@@ -148,7 +149,7 @@ def select_stereo(feature_list: list[dict])-> Union[None, list[dict]]:
                        is_stereo_angles(
                            e[0]["properties"]["providerProperties"]["incidenceAngleAlongTrack"],
                            e[1]["properties"]["providerProperties"]["incidenceAngleAlongTrack"],
-                           e[0]["properties"]["collection"],
+                           sensor=e[0]["properties"]["collection"],
                        ),
                        list(zip(a, b))
                        )
@@ -168,6 +169,7 @@ def select_tristereo(feature_list: list[dict])-> Union[None, list[dict]]:
         A list of triples that are probable tri-stereo triples.
 
     """
+
     # Get an iterator from the given list.
     it = iter(feature_list)
     # Create three parallel iterators.
@@ -190,9 +192,9 @@ def select_tristereo(feature_list: list[dict])-> Union[None, list[dict]]:
                        and
                        is_stereo_angles(
                            e[0]["properties"]["providerProperties"]["incidenceAngleAlongTrack"],
-                           e[2]["properties"]["providerProperties"]["incidenceAngleAlongTrack"],
-                           e[0]["properties"]["collection"],
-                           True, # is tri-stereo
+                           e[1]["properties"]["providerProperties"]["incidenceAngleAlongTrack"],
+                           sensor=e[0]["properties"]["collection"],
+                           tristereo=True,
                        ),
                        list(zip(a, b, c))
                        )
