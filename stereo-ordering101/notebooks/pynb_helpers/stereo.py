@@ -47,7 +47,8 @@ B_H_RANGE_SENSORS: Final[dict]={"phr": {"stereo": {"upper": 0.6,
 
 
 def is_stereo_dates(*acquisition_dates: str) -> bool:
-    """Checks to see if the acquisition dates are within the range allowed for a stereo/tri-stereo capture.
+    """Checks to see if the acquisition dates are within the range
+    allowed for a stereo/tri-stereo capture.
 
     Parameters
     ----------
@@ -63,7 +64,8 @@ def is_stereo_dates(*acquisition_dates: str) -> bool:
     Examples
     --------
     is_stereo_dates("2021-10-13T10:59:01.624Z", "2021-10-13T10:58:42.874Z")
-    is_stereo_dates("2021-10-07T11:21:34.555Z", "2021-10-07T11:21:20.305Z", "2021-10-07T11:21:06.180Z")
+    is_stereo_dates("2021-10-07T11:21:34.555Z", "2021-10-07T11:21:20.305Z",
+                    "2021-10-07T11:21:06.180Z")
 
     """
 
@@ -78,7 +80,9 @@ def is_stereo_dates(*acquisition_dates: str) -> bool:
 
 
 def is_stereo_angles(*incidence_angles: float, sensor: str, tristereo: bool=False) -> bool:
-    """Checks is the incidence angles along the track is within the B/H bounds defined for a given satellite when doing stereo/tri-stereo captures.
+    """Checks is the incidence angles along the track are within the
+    B/H bounds defined for a given satellite when doing
+    stereo/tri-stereo captures.
 
     Parameters
     ----------
@@ -118,7 +122,8 @@ def is_stereo_angles(*incidence_angles: float, sensor: str, tristereo: bool=Fals
 
 
 def select_stereo(feature_list: list[dict])-> Union[None, list[dict]]:
-    """Given a list of GeoJSON simple features it returns the ones that are possibly stereo pairs.
+    """Given a list of GeoJSON simple features it returns the ones
+    that are possibly stereo pairs.
 
     Parameters
     ----------
@@ -157,7 +162,8 @@ def select_stereo(feature_list: list[dict])-> Union[None, list[dict]]:
                 )
 
 def select_tristereo(feature_list: list[dict])-> Union[None, list[dict]]:
-    """Given a list of GeoJSON simple features it returns the ones that are possibly tri-stereo triples.
+    """Given a list of GeoJSON simple features it returns the ones
+    that are possibly tri-stereo triples.
 
     Parameters
     ----------
