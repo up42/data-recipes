@@ -108,8 +108,9 @@ def is_stereo_angles(*incidence_angles: float, sensor: str, tristereo: bool=Fals
     # of stereo/tri-stereo captures. Up to 100 km. The curvature of the
     # Earth will make it so that the "drop" between, the beginning and
     # the end of the capture is roughly 800 m for a 100 km length.
-    b_over_h = reduce(lambda x, y: sin(radians(x)) + sin(radians(y)),
+    b_over_h = reduce(lambda x, y: abs(sin(radians(x))) + abs(sin(radians(y))),
                       incidence_angles)
+
     # Get the acquisition mode.
     mode = "tristereo" if tristereo else "stereo"
     # Check if B/H is within the respective sensor bounds.
@@ -138,7 +139,7 @@ def select_stereo(feature_list: list[dict])-> Union[None, list[dict]]:
     # Advance the second iterator.
     next(b, None)
     # Build a list of consecutive pairs from the given list. Filter
-    # that list for stereo pairs.  This works due to the ordering of
+    # that list for stereo pairs. This works due to the ordering of
     # the search results.
     return list(filter(lambda e:
                        is_stereo_dates(
