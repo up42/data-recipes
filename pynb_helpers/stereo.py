@@ -188,9 +188,7 @@ def select_tristereo(feature_list: list[dict])-> Union[None, list[dict]]:
     # Build a list of consecutive triples from the given list. Filter
     # that list for tri-stereo triples. We only analyse the "extreme"
     # positions, hence we only check for the first and third element
-    # of the triple for the dates. For the angle we look at the first
-    # two, since the B/H value is adjusted for tri-stereo, This works
-    # due to the ordering of the search results.
+    # of the triple for the dates and angles.
     return list(filter(lambda e:
                        is_stereo_dates(
                            e[0]["properties"]["acquisitionDate"],
@@ -199,7 +197,7 @@ def select_tristereo(feature_list: list[dict])-> Union[None, list[dict]]:
                        and
                        is_stereo_angles(
                            e[0]["properties"]["providerProperties"]["incidenceAngleAlongTrack"],
-                           e[1]["properties"]["providerProperties"]["incidenceAngleAlongTrack"],
+                           e[2]["properties"]["providerProperties"]["incidenceAngleAlongTrack"],
                            sensor=e[0]["properties"]["collection"],
                            tristereo=True,
                        ),
