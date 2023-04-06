@@ -110,6 +110,20 @@ order data.
 
  * `stereo_ordering101.ipynb`.
 
+## STAC asset service
+
+SpatioTemporal Asset Catalog (STAC) is a specification designed to establish
+a standard in geospatial data. UP42 has a STAC API set `/v2/assets/stac` that allows
+you to retrieve STAC objects mapped to your UP42 assets.
+
+### Jupyter notebook
+
+In the `notebooks` directory there is a Python
+[Jupyter](https://jupyter.org) notebook that makes use of the
+[UP42 SDK](https://sdk.up42.com/) and
+[PySTAC](https://pystac.readthedocs.io/en/stable/)
+to search for STAC collections and STAC items in your UP42 storage.
+
 ## License
 
 MIT License
