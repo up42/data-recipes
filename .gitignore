@@ -3,3 +3,8 @@ notebooks/.ipynb_checkpoints/*
 **__pycache__
 **/.ipynb_checkpoints/
 **/__pycache_/
+**/not_public_*
+**/.jupyter_cache/
+**/_assets/
+**/quarto-ext/
+**/__pycache_/
