@@ -110,11 +110,39 @@ order data.
 
  * `stereo_ordering101.ipynb`.
 
-## STAC asset service
+## STAC Asset service using httpx
 
 SpatioTemporal Asset Catalog (STAC) is a specification designed to establish
 a standard in geospatial data. UP42 has a STAC API set `/v2/assets/stac` that allows
-you to retrieve STAC objects mapped to your UP42 assets.
+you to retrieve STAC objects mapped to your UP42 assets. These assets
+are any type of geospatial data that you have purchased through UP42
+or otherwise made available in your account. We use the raw API with
+[httpx](https://pypi.org/project/httpx/). Below is an implementation
+using [PySTAC](https://pystac.readthedocs.io/en/stable/).
+
+### Jupyter notebook
+
+In the `notebooks` directory there is a Python
+[Jupyter](https://jupyter.org) notebook that makes use of httpx to
+explore the UP42 user storage STAC implementation.
+
+ * `asset_service_api101.ipynb`
+
+You can get an overview of the notebook using
+[nbviewer](https://nbviewer.org/github/up42/data-recipes/blob/master/asset-service-api101/notebooks/asset_service_api101.ipynb).
+
+Since this notebook uses the
+[IPython.display](https://ipython.readthedocs.io/en/stable/api/generated/IPython.display.html)
+JSON method the outputs can be visualized when running the notebook interactively.
+
+## STAC asset service using PySTAC
+
+SpatioTemporal Asset Catalog (STAC) is a specification designed to establish
+a standard in geospatial data. UP42 has a STAC API set `/v2/assets/stac` that allows
+you to retrieve STAC objects mapped to your UP42 assets. This
+implementation uses
+[PySTAC](https://pystac.readthedocs.io/en/stable/). A Python client
+library for STAC based resource catalogs.
 
 ### Jupyter notebook
 
