@@ -13,8 +13,8 @@ from operator import sub as minus_op
 # Create multiple paralllel iterators and flatten a list.
 from itertools import tee, chain
 
-# Trigonometric calculations functions.
-from math import sin, radians
+# Trigonometric calculations and "rounding" functions.
+from math import ceil, radians, sin
 
 from typing import Union, Final
 
@@ -45,8 +45,60 @@ B_H_RANGE_SENSORS: Final[dict]={"phr": {"stereo": {"upper": 0.6,
                                          }
                                 }
 
+def compute_delay(*dates: str) -> int:
+    """Computes the delay in seconds between two given dates
 
-def is_stereo_dates(*acquisition_dates: str) -> bool:
+    Parameters
+    ----------
+    *dates : str
+        two dates for computing the difference given as "yyyy-mm-dd"
+
+    Returns
+    -------
+    int
+        The difference in seconds between the tow given dates.
+
+    Examples
+    --------
+    compute_delay("2023-06-26", "2021-04-01")
+
+    """
+    return abs(int(reduce(minus_op,
+                          map(lambda d: dt.timestamp(
+                              dt.strptime(f"{d}T00:00:00",
+                                          "%Y-%m-%dT%H:%M:%S",
+                                          )),
+                              [*dates]))))
+
+def format_date(date: str) -> str:
+    """Formats a date in a consistent manner so that we have always a microsecond value.
+
+    Parameters
+    ----------
+    date : str
+        A date string
+
+    Returns
+    -------
+    str
+        A modified (with microseconds) date string
+
+    Examples
+    --------
+    format_date("2019-12-25T16:12:29Z")
+    format_date("2019-12-30T14:33:22.430Z")
+
+    """
+
+    # Normal acquisition date string that has a milliseconds value.
+    if re.search(r"(?P<ms>\.\d{3})Z$", date):
+        return re.sub(r"(?P<ms>\.\d{3})Z$", r"\g<ms>000Z", date)
+    # Sometimes the acquisition date doesn't have a milliseconds
+    # value. We need to take care of it.
+    return re.sub(r"(?P<ds>.*)Z$", r"\g<ds>.000000Z", date)
+
+
+def is_stereo_dates(*acquisition_dates: str, delay: int=MAX_ACQ_TIME_DELTA) -> bool:
     """Checks to see if the acquisition dates are within the range
     allowed for a stereo/tri-stereo capture.
 
@@ -54,6 +106,8 @@ def is_stereo_dates(*acquisition_dates: str) -> bool:
     ----------
     *acquisition_dates : str
         pair/triple of acquisition dates
+    delay : int
+        maximum allowed difference in seconds between acquisition dates
 
     Returns
     -------
@@ -75,8 +129,8 @@ def is_stereo_dates(*acquisition_dates: str) -> bool:
     # create a UNIX timestamp from the given acquisition dates.
     return reduce(minus_op, map(lambda d: dt.timestamp(
         dt.strptime(
-            re.sub(r"(?P<ms>\.\d{3})Z$", r"\g<ms>000Z", d),
-            "%Y-%m-%dT%H:%M:%S.%fZ")), acquisition_dates)) < MAX_ACQ_TIME_DELTA
+            format_date(d),
+            "%Y-%m-%dT%H:%M:%S.%fZ")), acquisition_dates)) < delay
 
 
 def is_stereo_angles(*incidence_angles: float, sensor: str, tristereo: bool=False) -> bool:
@@ -115,13 +169,19 @@ def is_stereo_angles(*incidence_angles: float, sensor: str, tristereo: bool=Fals
     b_over_h = reduce(lambda x, y: abs(sin(radians(x))) + abs(sin(radians(y))),
                       incidence_angles)
 
+    # Since the specific of B/H is given with one decimal only in the
+    # manuals we need to be a bit unprecise when computing the B/H
+    # value otherwise we will miss stereo and above all tristereo
+    # pairs.
+    b_over_h = ceil(b_over_h * 10) / 10
     # Get the acquisition mode.
     mode = "tristereo" if tristereo else "stereo"
     # Check if B/H is within the respective sensor bounds.
     return B_H_RANGE_SENSORS[sensor][mode]["lower"] <= b_over_h <= B_H_RANGE_SENSORS[sensor][mode]["upper"]
 
 
-def select_stereo(feature_list: list[dict])-> Union[None, list[dict]]:
+def select_stereo(feature_list: list[dict],
+                  delay: int=MAX_ACQ_TIME_DELTA) -> Union[None, list[dict]]:
     """Given a list of GeoJSON simple features it returns the ones
     that are possibly stereo pairs.
 
@@ -129,6 +189,8 @@ def select_stereo(feature_list: list[dict])-> Union[None, list[dict]]:
     ----------
     feature_list : list[dict]
         A list of GeoJSON simple features.
+    delay : int
+        maximum allowed difference in seconds between acquisition dates
 
     Returns
     -------
@@ -150,6 +212,7 @@ def select_stereo(feature_list: list[dict])-> Union[None, list[dict]]:
                        is_stereo_dates(
                            e[0]["properties"]["acquisitionDate"],
                            e[1]["properties"]["acquisitionDate"],
+                           delay=delay,
                        )
                        and
                        is_stereo_angles(
@@ -161,7 +224,8 @@ def select_stereo(feature_list: list[dict])-> Union[None, list[dict]]:
                        )
                 )
 
-def select_tristereo(feature_list: list[dict])-> Union[None, list[dict]]:
+def select_tristereo(feature_list: list[dict],
+                     delay: int=MAX_ACQ_TIME_DELTA) -> Union[None, list[dict]]:
     """Given a list of GeoJSON simple features it returns the ones
     that are possibly tri-stereo triples.
 
@@ -169,6 +233,8 @@ def select_tristereo(feature_list: list[dict])-> Union[None, list[dict]]:
     ----------
     feature_list : list[dict]
         A list of GeoJSON simple features.
+    delay : int
+        maximum allowed difference in seconds between acquisition dates
 
     Returns
     -------
@@ -193,6 +259,7 @@ def select_tristereo(feature_list: list[dict])-> Union[None, list[dict]]:
                        is_stereo_dates(
                            e[0]["properties"]["acquisitionDate"],
                            e[2]["properties"]["acquisitionDate"],
+                           delay=delay,
                        )
                        and
                        is_stereo_angles(
@@ -206,7 +273,7 @@ def select_tristereo(feature_list: list[dict])-> Union[None, list[dict]]:
                 )
 
 
-def get_stereo_image_ids(results_list: list[tuple])-> list[str]:
+def get_stereo_image_ids(results_list: list[tuple]) -> list[str]:
     """Convenience function to extract the image IDs from a list of
     given stereo pairs.
 
@@ -229,7 +296,7 @@ def get_stereo_image_ids(results_list: list[tuple])-> list[str]:
                                         results_list)))
 
 
-def get_tristereo_image_ids(results_list: list[tuple])-> list[str]:
+def get_tristereo_image_ids(results_list: list[tuple]) -> list[str]:
     """Convenience function to extract the image IDs from a list of
     given tri-stereo triples.
 
