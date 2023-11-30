@@ -11,15 +11,27 @@ from functools import reduce
 from operator import sub as minus_op
 
 # Create multiple paralllel iterators and flatten a list.
-from itertools import tee, chain
+from itertools import tee, chain, pairwise, filterfalse
 
 # Trigonometric calculations and "rounding" functions.
 from math import ceil, radians, sin
 
 from typing import Union, Final
 
+# GeoJSON library.
+from geojson import FeatureCollection
+
+# Handling dictionaries more functionally.
+from toolz.dicttoolz import get_in
+
+# Geometry handling functions.
+from shapely.geometry import shape
+from shapely import intersection
+
 # The maximum acquisition date delta in seconds in a stereo/tri-stereo capture.
-MAX_ACQ_TIME_DELTA: Final[float]= 90
+MAX_ACQ_TIME_DELTA: Final[int] = 90
+# The minimum overlao for the footprints.
+MIN_OVERLAP_PERCENTAGE: Final[float] = 95.0
 
 # B/H range for Pléiades, SPOT and Pléiades NEO.
 B_H_RANGE_SENSORS: Final[dict]={"phr": {"stereo": {"upper": 0.6,
@@ -44,6 +56,17 @@ B_H_RANGE_SENSORS: Final[dict]={"phr": {"stereo": {"upper": 0.6,
                                                        }
                                          }
                                 }
+
+# Dictionary key list (tree) for getting the data collection  key for the search results.
+catalog_constellation_key: Final[list] = ["properties", "collection"]
+# Dictionary key list (tree) for getting the acquisition dates for the search results (catalog).
+catalog_datetime_key: Final[list] = ["properties", "acquisitionDate"]
+# Dictionary key list (tree) for getting the incidence angle for search results (catalog).
+catalog_angles_key: Final[list] = ["properties",  "providerProperties",
+                                   "incidenceAngleAlongTrack"]
+# Dictionary key list (tree) for getting the geometry (footprint) for search results (catalog).
+catalog_geometry_key: Final[list] = ["geometry"]
+
 
 def compute_delay(*dates: str) -> int:
     """Computes the delay in seconds between two given dates
@@ -127,7 +150,7 @@ def is_stereo_dates(*acquisition_dates: str, delay: int=MAX_ACQ_TIME_DELTA) -> b
     # milliseconds date format descriptor. See:
     # https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes. Also
     # create a UNIX timestamp from the given acquisition dates.
-    return reduce(minus_op, map(lambda d: dt.timestamp(
+    return 0 < reduce(minus_op, map(lambda d: dt.timestamp(
         dt.strptime(
             format_date(d),
             "%Y-%m-%dT%H:%M:%S.%fZ")), acquisition_dates)) < delay
@@ -180,8 +203,50 @@ def is_stereo_angles(*incidence_angles: float, sensor: str, tristereo: bool=Fals
     return B_H_RANGE_SENSORS[sensor][mode]["lower"] <= b_over_h <= B_H_RANGE_SENSORS[sensor][mode]["upper"]
 
 
+def is_overlapping(*geometries: dict,
+                   min_overlap_percentage: float=95.0) -> bool:
+    """Predicate that verifies that a given set of geometries overlap
+    to a certain percentage.
+
+    Parameters
+    ----------
+    *geonetries : dict
+        set of geometries
+    min_overlap_percentage : float
+        the lowest possible value for the overlap percentage
+
+    Returns
+    -------
+    bool
+        True if the geometries overlap up to the set percentage. False
+        otherwise.
+
+    Examples
+    --------
+    FIXME: Add docs.
+
+    """
+    print
+    # Get the shapes (Shapely geometric objects).
+    geom_shapes = list(map(lambda e: shape(e), geometries))
+    # Compute the overlaps.
+    min_area_size = reduce(min, list(map(lambda s: s.area, geom_shapes)))
+    overlaps = list(map(lambda g: intersection(g[0], g[1]).area * 100/min_area_size,
+                        pairwise(geom_shapes)))
+
+    # Check the overlap percentage.
+    it = filterfalse(lambda e: e >= min_overlap_percentage, overlaps)
+    # Return the result based on the overlap percentages. If any is
+    # below the overlap_percentage_lower_bound then return False. True
+    # otherwise.
+    return True if next(it, None) is None else False
+
+
 def select_stereo(feature_list: list[dict],
-                  delay: int=MAX_ACQ_TIME_DELTA) -> Union[None, list[dict]]:
+                  delay: int=MAX_ACQ_TIME_DELTA,
+                  min_overlap_percentage: float=MIN_OVERLAP_PERCENTAGE,
+                  ) -> Union[None, list[dict]]:
+
     """Given a list of GeoJSON simple features it returns the ones
     that are possibly stereo pairs.
 
@@ -190,7 +255,9 @@ def select_stereo(feature_list: list[dict],
     feature_list : list[dict]
         A list of GeoJSON simple features.
     delay : int
-        maximum allowed difference in seconds between acquisition dates
+        Maximum allowed difference in seconds between acquisition dates.
+    min_overlap_percentage : float
+        The lowest possible value for the overlap percentage.
 
     Returns
     -------
@@ -210,22 +277,30 @@ def select_stereo(feature_list: list[dict],
     # the search results.
     return list(filter(lambda e:
                        is_stereo_dates(
-                           e[0]["properties"]["acquisitionDate"],
-                           e[1]["properties"]["acquisitionDate"],
+                           get_in([0] + catalog_datetime_key, e),
+                           get_in([1] + catalog_datetime_key, e),
                            delay=delay,
                        )
                        and
                        is_stereo_angles(
-                           e[0]["properties"]["providerProperties"]["incidenceAngleAlongTrack"],
-                           e[1]["properties"]["providerProperties"]["incidenceAngleAlongTrack"],
-                           sensor=e[0]["properties"]["collection"],
+                           get_in([0] + catalog_angles_key, e),
+                           get_in([1] + catalog_angles_key, e),
+                           sensor=get_in([0] + catalog_constellation_key, e),
+                       )
+                       and
+                       is_overlapping(
+                           get_in([0] + catalog_geometry_key, e),
+                           get_in([1] + catalog_geometry_key, e),
+                           min_overlap_percentage=min_overlap_percentage,
                        ),
                        list(zip(a, b))
                        )
                 )
 
+
 def select_tristereo(feature_list: list[dict],
-                     delay: int=MAX_ACQ_TIME_DELTA) -> Union[None, list[dict]]:
+                     delay: int=MAX_ACQ_TIME_DELTA,
+                     min_overlap_percentage: float=MIN_OVERLAP_PERCENTAGE) -> Union[None, list[dict]]:
     """Given a list of GeoJSON simple features it returns the ones
     that are possibly tri-stereo triples.
 
@@ -234,7 +309,9 @@ def select_tristereo(feature_list: list[dict],
     feature_list : list[dict]
         A list of GeoJSON simple features.
     delay : int
-        maximum allowed difference in seconds between acquisition dates
+        Maximum allowed difference in seconds between acquisition dates.
+    min_overlap_percentage : float
+        The lowest possible value for the overlap percentage.
 
     Returns
     -------
@@ -254,23 +331,63 @@ def select_tristereo(feature_list: list[dict],
     # Build a list of consecutive triples from the given list. Filter
     # that list for tri-stereo triples. We only analyse the "extreme"
     # positions, hence we only check for the first and third element
-    # of the triple for the dates and angles.
+    # of the triple for the dates and angles. For overlap we look for
+    # all the footprints.
     return list(filter(lambda e:
                        is_stereo_dates(
-                           e[0]["properties"]["acquisitionDate"],
-                           e[2]["properties"]["acquisitionDate"],
+                           get_in([0] + catalog_datetime_key, e),
+                           get_in([2] + catalog_datetime_key, e),
                            delay=delay,
                        )
                        and
                        is_stereo_angles(
-                           e[0]["properties"]["providerProperties"]["incidenceAngleAlongTrack"],
-                           e[2]["properties"]["providerProperties"]["incidenceAngleAlongTrack"],
-                           sensor=e[0]["properties"]["collection"],
+                           get_in([0] + catalog_angles_key, e),
+                           get_in([2] + catalog_angles_key, e),
+                           sensor=get_in([0] + catalog_constellation_key, e),
                            tristereo=True,
+                       )
+                       and
+                       is_overlapping(
+                           get_in([0] + catalog_geometry_key, e),
+                           get_in([1] + catalog_geometry_key, e),
+                           get_in([2] + catalog_geometry_key, e),
+                           min_overlap_percentage=min_overlap_percentage,
                        ),
                        list(zip(a, b, c))
                        )
                 )
+
+
+def get_features(results_list: list[tuple]) -> dict:
+    """Convenience function to generate a feature collection
+    given a list of results.
+
+    Parameters
+    ----------
+    results_list : list[tuple]
+        A list of pairs/triples containing the he given stereo
+        pairs/tri-stereotriples.
+
+    Returns
+    -------
+    dict
+        Feature collection with all the results.
+
+    """
+
+    return FeatureCollection(list(chain.from_iterable(results_list)))
+
+
+## NEEDS WORK
+def modify_geometries_intersected():
+    pass
+
+def modify_geometries_intersected_aux(items: tuple[dict,dict]) ->  tuple[dict, dict]:
+    intersected_geometry = dict(geometry=mapping(
+        intersection(shape(get_in([0, "geometry"], items)),
+                     shape(get_in([1, "geometry"], items)))))
+    return(items[0] | intersected_geometry, items[1] | intersected_geometry)
+## NEEDS WORK
 
 
 def get_stereo_image_ids(results_list: list[tuple]) -> list[str]:
@@ -290,7 +407,7 @@ def get_stereo_image_ids(results_list: list[tuple]) -> list[str]:
 
     """
 
-    # Build and flatten the list using chain.from_iterable.
+
     return list(chain.from_iterable(map(lambda e: [e[0]["properties"]["id"],
                                                    e[1]["properties"]["id"]],
                                         results_list)))
