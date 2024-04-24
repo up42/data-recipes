@@ -117,8 +117,7 @@ a standard in geospatial data. UP42 has a STAC API set `/v2/assets/stac` that al
 you to retrieve STAC objects mapped to your UP42 assets. These assets
 are any type of geospatial data that you have purchased through UP42
 or otherwise made available in your account. We use the raw API with
-[httpx](https://pypi.org/project/httpx/). Below is an implementation
-using [PySTAC](https://pystac.readthedocs.io/en/stable/).
+[httpx](https://pypi.org/project/httpx/).
 
 ### Jupyter notebook
 
@@ -134,23 +133,6 @@ You can get an overview of the notebook using
 Since this notebook uses the
 [IPython.display](https://ipython.readthedocs.io/en/stable/api/generated/IPython.display.html)
 JSON method the outputs can be visualized when running the notebook interactively.
-
-## STAC asset service using PySTAC
-
-SpatioTemporal Asset Catalog (STAC) is a specification designed to establish
-a standard in geospatial data. UP42 has a STAC API set `/v2/assets/stac` that allows
-you to retrieve STAC objects mapped to your UP42 assets. This
-implementation uses
-[PySTAC](https://pystac.readthedocs.io/en/stable/). A Python client
-library for STAC based resource catalogs.
-
-### Jupyter notebook
-
-In the `notebooks` directory there is a Python
-[Jupyter](https://jupyter.org) notebook that makes use of the
-[UP42 SDK](https://sdk.up42.com/) and
-[PySTAC](https://pystac.readthedocs.io/en/stable/)
-to search for STAC collections and STAC items in your UP42 storage.
 
 ## License
 
